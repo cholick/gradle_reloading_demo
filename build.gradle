@@ -1,0 +1,63 @@
+apply plugin: 'groovy'
+apply plugin: 'application'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+mainClassName = 'com.cholick.demo.ReloadingApplication'
+String springloadedVersion = '1.2.0.RELEASE'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations {
+    agent
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.3.4'
+    compile 'io.dropwizard:dropwizard-core:0.7.1'
+    //jersey-client needed due to http://issues.gradle.org/browse/GRADLE-2647
+    compile 'com.sun.jersey:jersey-client:1.18'
+
+    agent "org.springframework:springloaded:${springloadedVersion}"
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.bluepapa32:gradle-watch-plugin:0.1.3'
+    }
+}
+
+run {
+    args = ['server', 'app.yaml']
+    jvmArgs = ["-javaagent:${new File("$buildDir/agent/springloaded-${springloadedVersion}.jar").absolutePath}", '-noverify']
+}
+
+task copyAgent(type: Copy) {
+    from configurations.agent
+    into "$buildDir/agent"
+}
+run.mustRunAfter copyAgent
+
+apply plugin: 'watch'
+watch {
+    groovy {
+        files files('src/main/groovy')
+        tasks 'compileGroovy'
+    }
+}
+
+task watchThread() << {
+    Thread.start {
+        project.tasks.watch.execute()
+    }
+}
+run.mustRunAfter watchThread
+
+task reloading(dependsOn: [watchThread, copyAgent, run])

@@ -1,0 +1,15 @@
+**.DS_Store
+*~
+
+#IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea/*
+!.idea/runConfigurations
+build
+
+#Gradle
+out
+.gradle
+.gradletasknamecache
